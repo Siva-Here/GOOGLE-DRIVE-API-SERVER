@@ -18,6 +18,25 @@ const oauth2Client = new google.auth.OAuth2(
   REDIRECT_URI
 );
 
+const fileFilter = (req, file, cb) => {
+  const allowedMimeTypes = [
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/bmp',
+    'image/webp',
+    'image/tiff',
+  ];
+
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Unsupported file type. Only PDFs and images are allowed.'), false);
+  }
+};
+
+
 oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 
 const drive = google.drive({
@@ -50,16 +69,8 @@ function getFileExtension(filename) {
 
 const upload = multer({
   storage: storage,
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf') {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only PDF files are allowed.'));
-    }
-  },
-  limits: {
-    fileSize: 30 * 1024 * 1024 // 30MB limit
-  }
+  limits: { fileSize: 30 * 1024 * 1024 }, // 30MB limit
+  fileFilter: fileFilter,
 }).single('file');
 
 // Serve uploaded files statically
@@ -88,11 +99,11 @@ app.post('/upload', (req, res) => {
       const response = await drive.files.create({
         requestBody: {
           name: req.file.originalname, // Use the original filename from the upload
-          parents: ["1ADy6Zj3tNL6RVeljH_mSrSPk4iJp0wQI"],
-          mimeType: 'application/pdf',
+          parents: ["1vTw_s7fovnGn8BCn1Yl-xlRD31IiK1O2"],
+          mimeType: req.file.mimetype,
         },
         media: {
-          mimeType: 'application/pdf',
+          mimeType: req.file.mimetype,
           body: fs.createReadStream(securePath),
         },
       });
@@ -143,7 +154,7 @@ async function uploadFile() {
     const response = await drive.files.create({
       requestBody: {
         name: 'animal.jpg', // This can be name of your choice
-        parents: ["1ADy6Zj3tNL6RVeljH_mSrSPk4iJp0wQI"],
+        parents: ["1vTw_s7fovnGn8BCn1Yl-xlRD31IiK1O2"],
         mimeType: 'image/jpg',
       },
       media: {
@@ -161,7 +172,7 @@ async function uploadFile() {
 async function deleteFile() {
   try {
     const response = await drive.files.delete({
-      fileId: '1Kw_fNBcFvi8QDiFEG6PdNvtnhSInOf6H',
+      fileId: '1ga_irec2aG9zidca9I30qKeephPRQr2R',
     });
     console.log(response.data, response.status);
   } catch (error) {
